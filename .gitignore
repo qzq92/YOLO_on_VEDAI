@@ -1,0 +1,6 @@
+# Tar files
+*.tar.*
+*.tar
+Vehicles/
+Annotations/
+yolov7/
