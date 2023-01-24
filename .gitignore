@@ -1,6 +1,15 @@
 # Tar files
 *.tar.*
 *.tar
+*.log
+
+# Generated folders
+Annotations_processed
+
+# Downloaded data
 Vehicles/
 Annotations/
+
+
+# Downloaded repo folders
 yolov7/
