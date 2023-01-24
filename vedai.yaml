@@ -1,0 +1,10 @@
+# Path to train validation and test images
+train: ./data/train 
+val: ./data/val
+
+# number of classes
+nc: 9
+
+# class names
+names: ['Car', 'Truck', 'Boat', 'Tractor', 'Camping (Van)', 'Pickup', 'Plane',
+Others, 'Vans']
