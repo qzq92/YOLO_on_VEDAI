@@ -3,14 +3,34 @@
 
 As AI advances are progressingly at a rapid pace, the purpose of this work is to explore the use of open-sourced YOLOv7 object detection model that was introduced in 2022 to detect objects in images. 
 
-Preliminary exploration of data is available in the attached Jupyter notebook *Data exploration.ipynb*
+Preliminary exploration of data is available in the attached Jupyter notebook *data_exploration.ipynb*
+
+## Procedure to run
+1. Clone this repo and ensure that *annotation1024_cleaned.txt* is included.
+2. Execute *extract_tar.sh* script to download necessary image file
+3. Clone Yolov7 Github as per the link below and place it in the same folder
+4.
+
+|Given vehicle type|Class label used for training|
+|---|---|
+|Car|1|
+|Truck|2|
+|Boat|3|
+|Tractor|4|
+|Camping Van|5|
+|Pickup|6|
+|Plane|7|
+|Others(Bus,motorbike etc)|8|
+|Van|9|
+
+
 
 ## YOLOv7 reference
 - [YOLOv7 Github](https://github.com/WongKinYiu/yolov7/blob/main/README.md)
 - [Research paper](https://arxiv.org/abs/2207.02696)
 - [Official YOLO v7 Custom Object Detection Tutorial | Windows & Linux (Youtube)](https://www.youtube.com/watch?v=-QWxJ0j9EY8)
 
-## Dataset download website
+## Dataset download URL
 - [VEDAI](https://downloads.greyc.fr/vedai/)  #Under Download and Copyrights section of the webpage
 
 ### Statistics of data representation:
@@ -34,6 +54,7 @@ Since there is no actual information on the class labels mappings from the paper
 |Bus(Not stated)|0|3(3)|8|
 |Motorbike(Not stated)|0|4(4)|7|
 |**Total**|3687|3757(70)|-|
+
 
 ### List of images in table without any annotation based on existence of file (for case of 1024 x 1024 resolution)
 
