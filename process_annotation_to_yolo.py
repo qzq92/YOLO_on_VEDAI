@@ -144,27 +144,32 @@ def generate_annotation_per_image(df, img_file_list, annot_output_dir):
 
     return None
 
-def split_data(df):
+def split_data(df, split_ratio=0.25):
     """This function splits the input dataframe into training and testing datasets via label stratification identified by 'class' column.
     
     Args:
       df: Dataframe considered for splitting.
+      split_ratio: Train test split ratio. Defaults to 25% use for test data
     Raises:
       KeyError: When invalid column is referenced.
     Returns:
       Two dataframe representing training and testing set with all columns retained.
     """
 
-    # Segment dataframe into features and labels to allow sklearn library to do a stratification split based on class labels.
+    # Segment dataframe into features and labels to allow sklearn library to do a stratification split based on class labels. Despite the fact that there are images with more than 1 annotation in it, the treatment treat each annotation as unique to each other and stratification only applies towards the class labels.
     try:
+        logging.info("Spltting %s annotations based on %s split ratio", len(df), split_ratio)
         X = df.drop(['class'], axis = 1)
         y = df['class']
 
-        X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.33, random_state=42, stratify=y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split_ratio, random_state=42, stratify=y)
 
         # Concatenates features and class as output for annotation generation.
         train_df = pd.concat([X_train, y_train], axis=1)
         test_df = pd.concat([X_test, y_test], axis=1)
+
+        logging.info("Total annotation for training: %s", len(train_df))
+        logging.info("Total annotation for testing: %s", len(test_df))
 
         return train_df, test_df
     except KeyError:
@@ -187,14 +192,15 @@ def copy_images_for_training(annot_file_list, src_img_folder, dest_img_folder):
     img_file_list = [filename.replace('.txt','_co.png') for filename in annot_file_list]
 
     for img_file in img_file_list:
-      source_img_path = os.path.join(src_img_folder, img_file)
-      destination_path = os.path.join(dest_img_folder, img_file)
-      try:
-          shutil.copy(source_img_path ,destination_path)
-          return None
-      except PermissionError:
-          print("Permission denied.")
+        source_img_path = os.path.join(src_img_folder, img_file)
+        destination_path = os.path.join(dest_img_folder, img_file)
+        try:
+            logging.info("Copying over %s to %s", source_img_path, destination_path)
+            shutil.copy(source_img_path ,destination_path)
+        except PermissionError:
+            logging.error("Permission denied.")
 
+    return None
 def main_process_annotation_to_yolo(sys_args):
     """This function processes the annotation files that would be splitted into train/test sets that adhere to YOLO format which is stored in created 'train' and 'test' folders.
 
@@ -265,6 +271,8 @@ def main_process_annotation_to_yolo(sys_args):
 
         # Generate YOLO format annotation file for each image list from training/testing dataset.
         annot_file_list = set(temp_df['annot_for_img_file'])
+        logging.info("Number of image files to be copied for %s state: %s", state, len(annot_file_list))
+        
         generate_annotation_per_image(temp_df, annot_file_list, annot_output_dir)
         
         # Copy over corresponding image from source destination to specified output directory as part of YOLO object detection model training requirement.
@@ -302,8 +310,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # For annotations
-    parser.add_argument('--input_annotation_file', 
-                        default=INPUT_ANNOTATION_FILE, 
+    parser.add_argument('--input_annotation_file',
+                        default=INPUT_ANNOTATION_FILE,
                         help="file storing VEDAI default annotations")
     parser.add_argument('--output_annotation_training_folder',
                         default=OUTPUT_ANNOT_TRAIN_FOLDER,
