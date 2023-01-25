@@ -5,6 +5,8 @@
 
 # Generated folders
 Annotations_processed
+test
+train
 
 # Downloaded data
 Vehicles/
