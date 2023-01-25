@@ -1,6 +1,6 @@
-# Path to train validation and test images
+# Path to train and test images
 train: ./data/train 
-val: ./data/val
+test: ./data/test
 
 # number of classes
 nc: 9
