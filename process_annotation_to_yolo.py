@@ -1,12 +1,14 @@
-from PIL import Image
-
 import argparse
 import os
 import sys
 import logging
+import shutil
 
 import numpy as np
 import pandas as pd
+
+from PIL import Image
+from sklearn.model_selection import train_test_split
 
 def normalise_bounding_box_val(df):
     """Function that generates the normalised bounding boxes' centre coordinates as well as its normalised width and height sizes with respect to image size.
@@ -108,19 +110,18 @@ def apply_class_mapping(df):
     except KeyError:
         logging.error("Invalid column: class referenced")
 
-def generate_annotation_per_file(df, annot_output_dir):
+def generate_annotation_per_image(df, img_file_list, annot_output_dir):
     """Function that generates the required YOLO annotation format for each image considered in a text file.
 
     Args:
       df: Dataframe considered.
-      annot_output_dir: Directory where generated text file containing YOLO annotations for each image are stored
+      img_file_list: List of image file info which annotations are to be generated
+      annot_output_dir: Directory where generated text file containing YOLO annotations for each image are stored.
     Raises:
       KeyError: When invalid column is referenced.
     Returns:
       Dataframe with new class labels.
     """
-
-
     col_interest = ['annot_for_img_file',
                     'class',
                     'x_centre_norm',
@@ -130,9 +131,9 @@ def generate_annotation_per_file(df, annot_output_dir):
 
     df = df[col_interest]
 
-    # Get a set of unique annotation files, for which based on it, relevant annotations are being filtered from dataframe and save as text content in a text file 
-    annot_files_for_img = set(df['annot_for_img_file'])
-    for img_id in annot_files_for_img :
+    # Get a set of unique annotation files, for which based on it, relevant annotations are being filtered from dataframe and save as text content in a text file.
+    
+    for img_id in img_file_list:
         try:
             temp_df = df[df['annot_for_img_file']==img_id].drop('annot_for_img_file', axis=1)
             txt_save_path = os.path.join(annot_output_dir, img_id)
@@ -143,14 +144,66 @@ def generate_annotation_per_file(df, annot_output_dir):
 
     return None
 
-def process_annotation_to_yolo(annotation_file, annot_output_dir):
-    """ This function processes the annotation files into a YOLO format.
-
-    The annotation file are to be interpreted as follows:
-    For each target and from left to right (one target per line), the image ID, the coordinates of the center in the image, the orientation of the vehicle, the 4 coordinates of the 4 corners, the class name, a flag stating if the target is entirely contained in the image, a flag stating if the vehicle is occluded.
+def split_data(df):
+    """This function splits the input dataframe into training and testing datasets via label stratification identified by 'class' column.
     
-    MAPPINGS:
-    1: car, 2:trucks, 4: tractors, 5: camping cars, 7: motorcycles, 8:buses, 9: vans, 10: others, 11: pickup, 23: boats , 201: Small Land Vehicles, 31: Large land Vehicles
+    Args:
+      df: Dataframe considered for splitting.
+    Raises:
+      KeyError: When invalid column is referenced.
+    Returns:
+      Two dataframe representing training and testing set with all columns retained.
+    """
+
+    # Segment dataframe into features and labels to allow sklearn library to do a stratification split based on class labels.
+    try:
+        X = df.drop(['class'], axis = 1)
+        y = df['class']
+
+        X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.33, random_state=42, stratify=y)
+
+        # Concatenates features and class as output for annotation generation.
+        train_df = pd.concat([X_train, y_train], axis=1)
+        test_df = pd.concat([X_test, y_test], axis=1)
+
+        return train_df, test_df
+    except KeyError:
+        logging.error("Invalid column: class referenced")
+
+def copy_images_for_training(annot_file_list, src_img_folder, dest_img_folder):
+    """This function copies each file from a given img_file_list(source) from src_img_folder to dest_img_folder(destination)
+
+    Args:
+      annot_file_list: set of annotation file information(.txt) to be referenced to guide which image are to be copied.
+      src_img_folder: Source directory path where VEDAI images are to be copied from.
+      dest_img_folder: Destination directory path where VEDAI images are to be copied to.
+    Raises:
+      PermissionError: When permission is denied or insufficient for copying.
+    Returns:
+      None
+    """
+
+    # String replacement of .txt to _co for pointing to the relevant image for copying.
+    img_file_list = [filename.replace('.txt','_co.png') for filename in annot_file_list]
+
+    for img_file in img_file_list:
+      source_img_path = os.path.join(src_img_folder, img_file)
+      destination_path = os.path.join(dest_img_folder, img_file)
+      try:
+          shutil.copy(source_img_path ,destination_path)
+          return None
+      except PermissionError:
+          print("Permission denied.")
+
+def main_process_annotation_to_yolo(sys_args):
+    """This function processes the annotation files that would be splitted into train/test sets that adhere to YOLO format which is stored in created 'train' and 'test' folders.
+
+    Args:
+      sys_args: Arguments parsed during execution of python script.
+    Raises:
+      KeyError: When invalid column is referenced.
+    Returns:
+      Dataframe with new class labels.
     """
     columns = ['Image_ID',
         'x_centre',
@@ -168,7 +221,7 @@ def process_annotation_to_yolo(annotation_file, annot_output_dir):
         'is_contained',
         'is_occluded']
 
-    data = pd.read_table(annotation_file, delimiter=' ', names=columns)
+    data = pd.read_table(sys_args.input_annotation_file, delimiter=' ', names=columns)
 
     # Filter out annotations for vehicles which are located within image boundary
     contained_df = data[data['is_contained']==1].copy()
@@ -183,15 +236,42 @@ def process_annotation_to_yolo(annotation_file, annot_output_dir):
 
     # Get normalised bounding box parameters and apply new class label mapping
     contained_df = normalise_bounding_box_val(contained_df)
-    
     contained_df = apply_class_mapping(contained_df)
-    
-    # Create a folder and generate annotation for each image file
-    if not os.path.exists(annot_output_dir):
-        os.makedirs(annot_output_dir)
 
-    generate_annotation_per_file(contained_df, annot_output_dir)
+    # Split data into train/test sets and get a set of file names for each set which annotations are to be generated respectively. A temporary dataframe is used as a dummy to point to dataframe used for training and testing, simplify code processing.
+    train_df, test_df = split_data(contained_df)
+    train_test_state = ['train','test']
+    for state in train_test_state:
+        temp_df = pd.DataFrame()
+
+        # Training case
+        if state == 'train':
+            annot_output_dir = sys_args.output_annotation_training_folder
+            image_output_dir = sys_args.output_image_training_folder
+            temp_df = train_df
+
+        # Testing case
+        else:
+            annot_output_dir = sys_args.output_annotation_testing_folder
+            image_output_dir = sys_args.output_image_testing_folder
+            temp_df = test_df
+
+        # Create a directory for storing images/annotations that would be used for YOLO model training
+        if not os.path.exists(annot_output_dir):
+            os.makedirs(annot_output_dir)
+
+        if not os.path.exists(image_output_dir):
+            os.makedirs(image_output_dir)
+
+        # Generate YOLO format annotation file for each image list from training/testing dataset.
+        annot_file_list = set(temp_df['annot_for_img_file'])
+        generate_annotation_per_image(temp_df, annot_file_list, annot_output_dir)
         
+        # Copy over corresponding image from source destination to specified output directory as part of YOLO object detection model training requirement.
+        copy_images_for_training(annot_file_list,
+                                 sys_args.input_image_folder,
+                                 image_output_dir)
+
     return None
 
 if __name__ == "__main__":
@@ -207,11 +287,41 @@ if __name__ == "__main__":
 
     logging.info("Running main function")
 
-    #Parse in arguments from terminal
-    #Argparser to read in command line inputs
+    # DEFAULT CONFIGS
+    INPUT_ANNOTATION_FILE = os.path.join(os.getcwd(), \
+                                        'annotation1024_cleaned.txt')
+    OUTPUT_ANNOT_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'labels')
+    OUTPUT_ANNOT_TEST_FOLDER = os.path.join(os.getcwd(), 'test', 'labels')
+
+    INPUT_VEHICLE_IMG_FOLDER = os.path.join(os.getcwd(), 'Vehicles', 'CO')
+    OUTPUT_IMG_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'images')
+    OUTPUT_IMG_TEST_FOLDER = os.path.join(os.getcwd(), 'test', 'images')
+
+
+    # Parse in arguments from terminal. Argparser to read in command line inputs
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_annotation_file', default='annotation1024_cleaned.txt',help="directory storing VEDAI default annotations")
-    parser.add_argument('--output_annotation_dir',  default='Annotations_processed', help="directory to store processed annotations")
+
+    # For annotations
+    parser.add_argument('--input_annotation_file', 
+                        default=INPUT_ANNOTATION_FILE, 
+                        help="file storing VEDAI default annotations")
+    parser.add_argument('--output_annotation_training_folder',
+                        default=OUTPUT_ANNOT_TRAIN_FOLDER,
+                        help="YOLO annotations for each image used for training")
+    parser.add_argument('--output_annotation_testing_folder',
+                        default=OUTPUT_ANNOT_TEST_FOLDER, 
+                        help="YOLO annotations for each image used for training")
+
+    # For images
+    parser.add_argument('--input_image_folder',
+                         default=INPUT_VEHICLE_IMG_FOLDER,
+                         help="file directory storing VEDAI images")
+    parser.add_argument('--output_image_training_folder',
+                         default=OUTPUT_IMG_TRAIN_FOLDER,
+                         help="file directory storing VEDAI images for model training")
+    parser.add_argument('--output_image_testing_folder', 
+                        default=OUTPUT_IMG_TEST_FOLDER,
+                        help="file directory storing VEDAI images for model training")
     args = parser.parse_args()
     
-    process_annotation_to_yolo(args.input_annotation_file,args.output_annotation_dir)
+    main_process_annotation_to_yolo(args)
