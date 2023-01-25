@@ -25,6 +25,9 @@ wget https://downloads.greyc.fr/vedai/Vehicules1024.tar.004
 wget https://downloads.greyc.fr/vedai/Vehicules1024.tar.005
 echo "Download completed"
 
+echo "Cloning YOLOv7 repo from Github"
+git clone https://github.com/WongKinYiu/yolov7.git
+echo "Completed download"
 
 if [ -d $veh_directory_to_check ] 
 then
@@ -57,3 +60,4 @@ mkdir $CO
 mkdir $IR
 mv $veh_directory_to_check/*_co.png $CO
 mv $veh_directory_to_check/*_ir.png $IR
+echo "Completed"
