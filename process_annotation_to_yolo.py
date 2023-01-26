@@ -90,33 +90,20 @@ def apply_class_mapping(df):
     Returns:
       Dataframe with new class labels.
     """
-    # Apply new mapping with defined dictionary of label mappings
-    # new_data = { 1:1,
-    #            2:2,
-    #            4:4,
-    #            5:5,
-    #            7:8,
-    #            8:8,
-    #            9:9,
-    #            10:8,
-    #            11:6,
-    #            23:3,
-    #            31:7
-    #        }
+    # Apply new mapping with defined dictionary of label mappings (must be 0-based mapping)
+    new_data = { 1:0,
+                2:1,
+                4:3,
+                5:4,
+                7:7,
+                8:7,
+                9:8,
+                10:7,
+                11:5,
+                23:2,
+                31:6
+    }
   
-
-    new_data = { 1:'Car',
-            2:'Truck',
-            4:'Tractor',
-            5:'Camping Van',
-            7:'Others',
-            8:'Others',
-            9:'Van',
-            10:'Others',
-            11:'Pickup',
-            23:'Boat',
-            31:'Plane'
-        }
     try:
         df['class'] = df['class'].replace(new_data)
         return df
@@ -150,7 +137,7 @@ def generate_annotation_per_image(df, img_file_list, annot_output_dir):
         try:
             temp_df = df[df['annot_for_img_file']==img_id].drop('annot_for_img_file', axis=1)
             txt_save_path = os.path.join(annot_output_dir, img_id)
-            txt_format = ['%s', '%f', '%f', '%f', '%f']
+            txt_format = ['%d', '%f', '%f', '%f', '%f']
             np.savetxt(txt_save_path, temp_df.values, fmt=txt_format, delimiter=" ")
         except IOError:
             logging.error("Unable to save annotations into %s", txt_save_path)
