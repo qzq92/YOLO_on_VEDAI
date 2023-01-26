@@ -144,34 +144,42 @@ def generate_annotation_per_image(df, img_file_list, annot_output_dir):
 
     return None
 
-def split_data(df, split_ratio=0.25):
-    """This function splits the input dataframe into training and testing datasets via label stratification identified by 'class' column.
+def split_data_train_val_test(df, val_split_ratio, test_split_ratio):
+    """This function splits the input dataframe into training, validation and testing datasets via label stratification identified by 'class' column.
     
     Args:
       df: Dataframe considered for splitting.
-      split_ratio: Train test split ratio. Defaults to 25% use for test data
+      val_split_ratio: Proportion of training data annotations to be used for validation.
+      test_split_ratio: Proportion of original data annotations to be used for testing.
     Raises:
       KeyError: When invalid column is referenced.
     Returns:
-      Two dataframe representing training and testing set with all columns retained.
+      Three dataframe representing training, validation and testing sets with all columns retained.
     """
 
     # Segment dataframe into features and labels to allow sklearn library to do a stratification split based on class labels. Despite the fact that there are images with more than 1 annotation in it, the treatment treat each annotation as unique to each other and stratification only applies towards the class labels.
     try:
-        logging.info("Spltting %s annotations based on %s split ratio", len(df), split_ratio)
+        logging.info("Spltting %s annotations based on %s test split ratio and %s validation split ratio", len(df), test_split_ratio, val_split_ratio)
+        
+        # Segregate features and labels
         X = df.drop(['class'], axis = 1)
         y = df['class']
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split_ratio, random_state=42, stratify=y)
+        # Create training and test sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_split_ratio, random_state=42, stratify=y)
+
+        # Further split training set into training and validation set
+        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=val_split_ratio, random_state=42, stratify=y)
 
         # Concatenates features and class as output for annotation generation.
         train_df = pd.concat([X_train, y_train], axis=1)
+        val_df = pd.concat([X_val, y_val], axis=1)
         test_df = pd.concat([X_test, y_test], axis=1)
 
         logging.info("Total annotation for training: %s", len(train_df))
+        logging.info("Total annotation for validation: %s", len(val_df))
         logging.info("Total annotation for testing: %s", len(test_df))
-
-        return train_df, test_df
+        return train_df, val_df, test_df
     except KeyError:
         logging.error("Invalid column: class referenced")
 
@@ -199,8 +207,9 @@ def copy_images_for_training(annot_file_list, src_img_folder, dest_img_folder):
             shutil.copy(source_img_path ,destination_path)
         except PermissionError:
             logging.error("Permission denied.")
-
     return None
+
+
 def main_process_annotation_to_yolo(sys_args):
     """This function processes the annotation files that would be splitted into train/test sets that adhere to YOLO format which is stored in created 'train' and 'test' folders.
 
@@ -245,8 +254,9 @@ def main_process_annotation_to_yolo(sys_args):
     contained_df = apply_class_mapping(contained_df)
 
     # Split data into train/test sets and get a set of file names for each set which annotations are to be generated respectively. A temporary dataframe is used as a dummy to point to dataframe used for training and testing, simplify code processing.
-    train_df, test_df = split_data(contained_df)
-    train_test_state = ['train','test']
+    train_df, val_df, test_df = split_data_train_val_test(contained_df, sys_args.validation_ratio, sys_args.testing_ratio)
+
+    train_test_state = ['train', 'val', 'test']
     for state in train_test_state:
         temp_df = pd.DataFrame()
 
@@ -255,6 +265,12 @@ def main_process_annotation_to_yolo(sys_args):
             annot_output_dir = sys_args.output_annotation_training_folder
             image_output_dir = sys_args.output_image_training_folder
             temp_df = train_df
+
+        # Validation case
+        elif state == 'val':
+            annot_output_dir = sys_args.output_annotation_validation_folder
+            image_output_dir = sys_args.output_image_validation_folder
+            temp_df = val_df
 
         # Testing case
         else:
@@ -295,16 +311,17 @@ if __name__ == "__main__":
 
     logging.info("Running main function")
 
-    # DEFAULT CONFIGS
+    # DEFAULT PATH SETTINGS FOR TRAIN/VAL/TEST IMAGE/ANNOTATIONS
     INPUT_ANNOTATION_FILE = os.path.join(os.getcwd(), \
                                         'annotation1024_cleaned.txt')
     OUTPUT_ANNOT_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'labels')
-    OUTPUT_ANNOT_TEST_FOLDER = os.path.join(os.getcwd(), 'val', 'labels')
+    OUTPUT_ANNOT_VAL_FOLDER = os.path.join(os.getcwd(), 'val', 'labels')
+    OUTPUT_ANNOT_TEST_FOLDER = os.path.join(os.getcwd(), 'test', 'labels')
 
     INPUT_VEHICLE_IMG_FOLDER = os.path.join(os.getcwd(), 'Vehicles', 'CO')
     OUTPUT_IMG_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'images')
-    OUTPUT_IMG_TEST_FOLDER = os.path.join(os.getcwd(), 'val', 'images')
-
+    OUTPUT_IMG_VAL_FOLDER = os.path.join(os.getcwd(), 'val', 'images')
+    OUTPUT_IMG_TEST_FOLDER = os.path.join(os.getcwd(), 'test', 'images')
 
     # Parse in arguments from terminal. Argparser to read in command line inputs
     parser = argparse.ArgumentParser()
@@ -316,9 +333,13 @@ if __name__ == "__main__":
     parser.add_argument('--output_annotation_training_folder',
                         default=OUTPUT_ANNOT_TRAIN_FOLDER,
                         help="YOLO annotations for each image used for training")
+    parser.add_argument('--output_annotation_validation_folder',
+                    default=OUTPUT_ANNOT_VAL_FOLDER, 
+                    help="YOLO annotations for each image used for validation")
+
     parser.add_argument('--output_annotation_testing_folder',
                         default=OUTPUT_ANNOT_TEST_FOLDER, 
-                        help="YOLO annotations for each image used for training")
+                        help="YOLO annotations for each image used for testing")
 
     # For images
     parser.add_argument('--input_image_folder',
@@ -327,9 +348,20 @@ if __name__ == "__main__":
     parser.add_argument('--output_image_training_folder',
                          default=OUTPUT_IMG_TRAIN_FOLDER,
                          help="file directory storing VEDAI images for model training")
+    parser.add_argument('--output_image_validation_folder',
+                      default=OUTPUT_IMG_VAL_FOLDER,
+                      help="file directory storing VEDAI images for model validation")
     parser.add_argument('--output_image_testing_folder',
                         default=OUTPUT_IMG_TEST_FOLDER,
-                        help="file directory storing VEDAI images for model training")
+                        help="file directory storing VEDAI images for model testing")
+
+    # For splitting
+    parser.add_argument('--validation_ratio',
+                         default=0.2,
+                         help="Proportion of annotation to be used for validation")
+    parser.add_argument('--testing_ratio',
+                         default=0.25,
+                         help="Proportion of annotation to be used for validation")
     args = parser.parse_args()
     
     main_process_annotation_to_yolo(args)
