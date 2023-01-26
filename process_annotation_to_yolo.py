@@ -91,19 +91,32 @@ def apply_class_mapping(df):
       Dataframe with new class labels.
     """
     # Apply new mapping with defined dictionary of label mappings
-    new_data = { 1:1,
-                2:2,
-                4:4,
-                5:5,
-                7:8,
-                8:8,
-                9:9,
-                10:8,
-                11:6,
-                23:3,
-                31:7
-            }
-    
+    # new_data = { 1:1,
+    #            2:2,
+    #            4:4,
+    #            5:5,
+    #            7:8,
+    #            8:8,
+    #            9:9,
+    #            10:8,
+    #            11:6,
+    #            23:3,
+    #            31:7
+    #        }
+  
+
+    new_data = { 1:'Car',
+            2:'Truck',
+            4:'Tractor',
+            5:'Camping Van',
+            7:'Others',
+            8:'Others',
+            9:'Van',
+            10:'Others',
+            11:'Pickup',
+            23:'Boat',
+            31:'Plane'
+        }
     try:
         df['class'] = df['class'].replace(new_data)
         return df
@@ -137,7 +150,7 @@ def generate_annotation_per_image(df, img_file_list, annot_output_dir):
         try:
             temp_df = df[df['annot_for_img_file']==img_id].drop('annot_for_img_file', axis=1)
             txt_save_path = os.path.join(annot_output_dir, img_id)
-            txt_format = ['%d', '%f', '%f', '%f', '%f']
+            txt_format = ['%s', '%f', '%f', '%f', '%f']
             np.savetxt(txt_save_path, temp_df.values, fmt=txt_format, delimiter=" ")
         except IOError:
             logging.error("Unable to save annotations into %s", txt_save_path)
@@ -198,7 +211,8 @@ def copy_images_for_training(annot_file_list, src_img_folder, dest_img_folder):
 
     for img_file in img_file_list:
         source_img_path = os.path.join(src_img_folder, img_file)
-        destination_path = os.path.join(dest_img_folder, img_file)
+        renamed_img_file = img_file.replace('_co.png','.png')
+        destination_path = os.path.join(dest_img_folder, renamed_img_file)
         try:
             logging.info("Copying over %s to %s", source_img_path, destination_path)
             shutil.copy(source_img_path ,destination_path)
@@ -241,6 +255,7 @@ def main_process_annotation_to_yolo(sys_args):
     # Generate filepath for each Image ID and its corresponding annotation txt file name. This is to facilitate the extraction of image sizing and also the subsequent annotation file that is to be generated for each image that contains the necessary annotation in YOLO format 
     contained_df['filepath'] = contained_df['Image_ID'].map(lambda x: os.path.join(os.getcwd(), 'Vehicles', 'CO', str(x).zfill(8) + '_co.png'))
 
+    # ensure the suffix matches with the corresponding image file
     contained_df['annot_for_img_file'] = contained_df['Image_ID'].map(lambda x: str(x).zfill(8) + '.txt')
 
     # Get image resolution information
