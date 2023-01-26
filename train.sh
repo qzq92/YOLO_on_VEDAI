@@ -7,9 +7,9 @@ set -e
 
 # Directory paths
 yolo_dir=./yolov7
-yolo_train_dir=$yolo_dir/data/train
-yolo_val_dir=$yolo_dir/data/val
-yolo_test_dir=$yolo_dir/data/test
+yolo_train_dir=./data/train
+yolo_val_dir=./data/val
+yolo_test_dir=./data/test
 data_path=./data/vedai.yaml
 hyperparams_path=./data/hyp.scratch.custom.yaml
 cfg_path=./cfg/training/yolov7-vedai-cfg.yaml
@@ -23,7 +23,7 @@ batch_size=8
 epochs=100
 img_res=1024
 output_name=VEDAI
-weights=$yolo_dir/yolov7.pt
+weights=yolov7.pt
 
 
 echo "Checking if yolov7 repo exists..."
@@ -91,4 +91,6 @@ echo "Moving over config file to yolov7's cfg's training subdirectory"
 cp yolov7-vedai-cfg.yaml $yolo_dir/cfg/training
 
 echo "Training yolo model"
-python $yolo_dir/train.py --workers $workers --device $device --batch-size $batch_size --epochs $epochs --img $img_res $img_res --data $data_path --hyp $hyperparams_path --cfg $cfg_path --name $output_name --weights $weights
+cd $yolo_dir
+python train.py --workers $workers --device $device --batch-size $batch_size --epochs $epochs --img $img_res $img_res --data $data_path --hyp $hyperparams_path --cfg $cfg_path --name $output_name --weights $weights
+cd ..
