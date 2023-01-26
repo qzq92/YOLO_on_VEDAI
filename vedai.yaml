@@ -7,5 +7,4 @@ val: ./data/val
 nc: 9
 
 # class names
-names: ['Car', 'Truck', 'Boat', 'Tractor', 'Camping (Van)', 'Pickup', 'Plane',
-Others, 'Vans']
+names: ['Car', 'Truck', 'Boat', 'Tractor', 'Camping (Van)', 'Pickup', 'Plane', Others, 'Vans']
