@@ -10,8 +10,20 @@ import pandas as pd
 from PIL import Image
 from sklearn.model_selection import train_test_split
 
+
+# DEFAULT PATH SETTINGS FOR TRAIN/VAL/TEST IMAGE/ANNOTATIONS
+INPUT_ANNOTATION_FILE = os.path.join(os.getcwd(), \
+                                    'annotation1024_cleaned.txt')
+OUTPUT_ANNOT_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'labels')
+OUTPUT_ANNOT_VAL_FOLDER = os.path.join(os.getcwd(), 'val', 'labels')
+
+INPUT_VEHICLE_IMG_FOLDER = os.path.join(os.getcwd(), 'Vehicles', 'CO')
+OUTPUT_IMG_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'images')
+OUTPUT_IMG_VAL_FOLDER = os.path.join(os.getcwd(), 'val', 'images')
+RESIZE_RES = 640
+
 def normalise_bounding_box_val(df):
-    """Function that generates the normalised bounding boxes' centre coordinates as well as its normalised width and height sizes with respect to image size.
+    """Function that generates the normalised bounding boxes' centre coordinates as well as its normalised width and height sizes with respect to image size. Should the normalised value exceed 1, it will be reset to 1.
 
     Args:
       df: Dataframe considered.
@@ -34,17 +46,20 @@ def normalise_bounding_box_val(df):
     ]
 
     try:
-        df['max_width_norm'] = (df[x_coords].max(axis=1)-df[x_coords].min(axis=1))\
-            /df['width']
+        # Create normalised centre point coordinates/bbox width/height of horizontal bounding box with regards to image width and height
+        df['max_bbox_width_norm'] = min((df[x_coords].max(axis=1)-df[x_coords].min(axis=1))\
+            /df['width'],1)
 
-        df['max_height_norm'] = (df[y_coords].max(axis=1)-df[y_coords].min(axis=1))\
-            /df['height']
+        df['max_bbox_height_norm'] = min((df[y_coords].max(axis=1)-df[y_coords].min(axis=1))\
+            /df['height'], 1)
 
-        # Create normalised centre point coordinates of horizontal bounding box with regards to image width and height
-        df['x_centre_norm'] = df['x_centre']/df['width']
+        df['x_centre_norm'] = min(df['x_centre']/df['width'] , 1)
 
-        df['y_centre_norm'] = df['y_centre']/df['height']
+        df['y_centre_norm'] = min(df['y_centre']/df['height'], 1)
+        
+        
         return df
+
     except KeyError:
         logging.error("Invalid column: class referenced")
 
@@ -126,8 +141,8 @@ def generate_annotation_per_image(df, img_file_list, annot_output_dir):
                     'class',
                     'x_centre_norm',
                     'y_centre_norm',
-                    'max_width_norm',
-                    'max_height_norm']
+                    'max_bbox_width_norm',
+                    'max_bbox_height_norm']
 
     df = df[col_interest]
 
@@ -201,10 +216,12 @@ def copy_images_for_training(annot_file_list, src_img_folder, dest_img_folder):
         renamed_img_file = img_file.replace('_co.png','.png')
         destination_path = os.path.join(dest_img_folder, renamed_img_file)
         try:
-            logging.info("Copying over %s to %s", source_img_path, destination_path)
-            shutil.copy(source_img_path ,destination_path)
+            logging.info("Resizing and copying image from %s to %s", source_img_path, destination_path)
+            image = Image.open(source_img_path)
+            image.thumbnail((RESIZE_RES, RESIZE_RES))
+            image.save(destination_path)
         except PermissionError:
-            logging.error("Permission denied.")
+            logging.error("Permission denied. You could have open a file or directory without knowing. Please check and rerun the program again")
     return None
 
 
@@ -305,15 +322,6 @@ if __name__ == "__main__":
 
     logging.info("Running main function")
 
-    # DEFAULT PATH SETTINGS FOR TRAIN/VAL/TEST IMAGE/ANNOTATIONS
-    INPUT_ANNOTATION_FILE = os.path.join(os.getcwd(), \
-                                        'annotation1024_cleaned.txt')
-    OUTPUT_ANNOT_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'labels')
-    OUTPUT_ANNOT_VAL_FOLDER = os.path.join(os.getcwd(), 'val', 'labels')
-
-    INPUT_VEHICLE_IMG_FOLDER = os.path.join(os.getcwd(), 'Vehicles', 'CO')
-    OUTPUT_IMG_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'images')
-    OUTPUT_IMG_VAL_FOLDER = os.path.join(os.getcwd(), 'val', 'images')
 
     # Parse in arguments from terminal. Argparser to read in command line inputs
     parser = argparse.ArgumentParser()
