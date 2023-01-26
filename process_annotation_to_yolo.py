@@ -299,11 +299,11 @@ if __name__ == "__main__":
     INPUT_ANNOTATION_FILE = os.path.join(os.getcwd(), \
                                         'annotation1024_cleaned.txt')
     OUTPUT_ANNOT_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'labels')
-    OUTPUT_ANNOT_TEST_FOLDER = os.path.join(os.getcwd(), 'test', 'labels')
+    OUTPUT_ANNOT_TEST_FOLDER = os.path.join(os.getcwd(), 'val', 'labels')
 
     INPUT_VEHICLE_IMG_FOLDER = os.path.join(os.getcwd(), 'Vehicles', 'CO')
     OUTPUT_IMG_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'images')
-    OUTPUT_IMG_TEST_FOLDER = os.path.join(os.getcwd(), 'test', 'images')
+    OUTPUT_IMG_TEST_FOLDER = os.path.join(os.getcwd(), 'val', 'images')
 
 
     # Parse in arguments from terminal. Argparser to read in command line inputs
@@ -327,7 +327,7 @@ if __name__ == "__main__":
     parser.add_argument('--output_image_training_folder',
                          default=OUTPUT_IMG_TRAIN_FOLDER,
                          help="file directory storing VEDAI images for model training")
-    parser.add_argument('--output_image_testing_folder', 
+    parser.add_argument('--output_image_testing_folder',
                         default=OUTPUT_IMG_TEST_FOLDER,
                         help="file directory storing VEDAI images for model training")
     args = parser.parse_args()
