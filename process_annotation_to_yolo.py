@@ -166,10 +166,10 @@ def split_data_train_val_test(df, val_split_ratio, test_split_ratio):
         y = df['class']
 
         # Create training and test sets
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_split_ratio, random_state=42, stratify=y)
+        X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=test_split_ratio, random_state=42, stratify=y)
 
         # Further split training set into training and validation set
-        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=val_split_ratio, random_state=42, stratify=y)
+        X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=val_split_ratio, random_state=42, stratify=y_temp)
 
         # Concatenates features and class as output for annotation generation.
         train_df = pd.concat([X_train, y_train], axis=1)
@@ -334,8 +334,8 @@ if __name__ == "__main__":
                         default=OUTPUT_ANNOT_TRAIN_FOLDER,
                         help="YOLO annotations for each image used for training")
     parser.add_argument('--output_annotation_validation_folder',
-                    default=OUTPUT_ANNOT_VAL_FOLDER, 
-                    help="YOLO annotations for each image used for validation")
+                        default=OUTPUT_ANNOT_VAL_FOLDER, 
+                        help="YOLO annotations for each image used for validation")
 
     parser.add_argument('--output_annotation_testing_folder',
                         default=OUTPUT_ANNOT_TEST_FOLDER, 
@@ -349,18 +349,18 @@ if __name__ == "__main__":
                          default=OUTPUT_IMG_TRAIN_FOLDER,
                          help="file directory storing VEDAI images for model training")
     parser.add_argument('--output_image_validation_folder',
-                      default=OUTPUT_IMG_VAL_FOLDER,
-                      help="file directory storing VEDAI images for model validation")
+                        default=OUTPUT_IMG_VAL_FOLDER,
+                        help="file directory storing VEDAI images for model validation")
     parser.add_argument('--output_image_testing_folder',
                         default=OUTPUT_IMG_TEST_FOLDER,
                         help="file directory storing VEDAI images for model testing")
 
     # For splitting
     parser.add_argument('--validation_ratio',
-                         default=0.2,
+                         default=0.2, type=float,
                          help="Proportion of annotation to be used for validation")
     parser.add_argument('--testing_ratio',
-                         default=0.25,
+                         default=0.25, type=float,
                          help="Proportion of annotation to be used for validation")
     args = parser.parse_args()
     
