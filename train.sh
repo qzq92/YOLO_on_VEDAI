@@ -7,6 +7,9 @@ set -e
 
 # Directory paths
 yolo_dir=./yolov7
+yolo_train_dir=$yolo_dir/data/train
+yolo_val_dir=$yolo_dir/data/val
+yolo_test_dir=$yolo_dir/data/test
 data_path=./data/vedai.yaml
 hyperparams_path=./data/hyp.scratch.custom.yaml
 cfg_path=./cfg/training/yolov7-vedai-cfg.yaml
@@ -43,6 +46,7 @@ else
 	echo "yolov7.pt already downloaded.Nothing to do here."
 fi
 
+echo "Checking existence of $yolo_dir/data/train directory "
 if [ ! -d $yolo_dir/data/train ];then
 	echo "Moving train folder into yolov7's data subdirectory"
 	mv train $yolo_dir/data
@@ -50,10 +54,18 @@ else
 	echo "Train folder already exists in yolov7"
 fi
 
-
+echo "Checking existence of $yolo_dir/data/val directory"
 if [ ! -d $yolo_dir/data/val ];then
-	echo "Moving test folder into yolov7's data subdirectory"
+	echo "Moving val folder into yolov7's data subdirectory"
 	mv val $yolo_dir/data
+else
+	echo "Val folder already exists in yolov7"
+fi
+
+echo "Checking existence of $yolo_dir/data/val directory"
+if [ ! -d $yolo_dir/data/test ];then
+	echo "Moving test folder into yolov7's data subdirectory"
+	mv test $yolo_dir/data
 else
 	echo "Test folder already exists in yolov7"
 fi
