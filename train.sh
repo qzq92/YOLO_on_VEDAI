@@ -12,7 +12,7 @@ yolo_val_dir=./data/val
 yolo_test_dir=./data/test
 data_path=./data/vedai.yaml
 hyperparams_path=./data/hyp.scratch.custom.yaml
-cfg_path=./cfg/training/yolov7-vedai-cfg.yaml
+cfg_train_path=./cfg/training
 output_name=VEDAI
 default_yolo_weight=./yolov7/yolov7.pt
 
@@ -67,7 +67,7 @@ fi
 
 echo "Checking existence of $yolo_dir/data/val directory"
 if [ ! -d $yolo_dir/data/val ];then
-	if [! -d $PWD/val ];then
+	if [ ! -d $PWD/val ];then
 		echo "No val folder found, did you forget to run generate_train_val_files.sh script?"
 	else
 		echo "Moving val folder into yolov7's data subdirectory"
@@ -76,7 +76,7 @@ if [ ! -d $yolo_dir/data/val ];then
 else
 	rm -rf $yolo_dir/data/val
 	echo "Removed existing val folder in yolov7"
-	if [! -d $PWD/val ];then
+	if [ ! -d $PWD/val ];then
 		echo "No val folder found, did you forget to run generate_train_val_files.sh script?"
 	else
 		echo "Moving val folder into yolov7's data subdirectory"
@@ -88,9 +88,9 @@ echo "Copying vedai.yaml over to $yolo_dir/data"
 cp vedai.yaml $yolo_dir/data
 
 echo "Moving over config file to yolov7's cfg's training subdirectory"
-cp yolov7-vedai-cfg.yaml $yolo_dir/cfg/training
+cp yolov7-vedai-cfg.yaml $yolo_dir/$cfg_train_path
 
 echo "Training yolo model"
 cd $yolo_dir
-python train.py --workers $workers --device $device --batch-size $batch_size --epochs $epochs --img $img_res $img_res --data $data_path --hyp $hyperparams_path --cfg $cfg_path --name $output_name --weights $weights
+python train.py --workers $workers --device $device --batch-size $batch_size --epochs $epochs --img $img_res $img_res --data $data_path --hyp $hyperparams_path --cfg $cfg_train_path/yolov7-vedai-cfg.yaml --name $output_name --weights $weights
 cd ..
