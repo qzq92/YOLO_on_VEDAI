@@ -7,6 +7,7 @@
 Annotations_processed
 test
 train
+val
 
 # Downloaded data
 Vehicles/
