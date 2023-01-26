@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 import logging
-import shutil
+
 
 import numpy as np
 import pandas as pd
@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 
 
 # DEFAULT PATH SETTINGS FOR TRAIN/VAL/TEST IMAGE/ANNOTATIONS
-INPUT_ANNOTATION_FILE = os.path.join(os.getcwd(), \
+INPUT_ANNOTATION_FILE = os.path.join(os.getcwd(),\
                                     'annotation1024_cleaned.txt')
 OUTPUT_ANNOT_TRAIN_FOLDER = os.path.join(os.getcwd(), 'train', 'labels')
 OUTPUT_ANNOT_VAL_FOLDER = os.path.join(os.getcwd(), 'val', 'labels')
@@ -23,7 +23,7 @@ OUTPUT_IMG_VAL_FOLDER = os.path.join(os.getcwd(), 'val', 'images')
 RESIZE_RES = 640
 
 def normalise_bounding_box_val(df):
-    """Function that generates the normalised bounding boxes' centre coordinates as well as its normalised width and height sizes with respect to image size. Should the normalised value exceed 1, it will be reset to 1.
+    """Function that generates the normalised bounding boxes' centre coordinates as well as its normalised width and height sizes with respect to image size. Should the normalised value exceed 0 or 1, it will be reset to within 0 and 1.
 
     Args:
       df: Dataframe considered.
@@ -46,17 +46,46 @@ def normalise_bounding_box_val(df):
     ]
 
     try:
+        # Ensure bounding box corner label coordinates does not exceed the resolution
+
+        for x in x_coords:
+            df[x] = np.where(df[x] > df['width'], df['width'], df[x])
+            df[x] = np.where(df[x] < 0, 0, df[x])
+
+        for y in y_coords:
+            df[y] = np.where(df[y] > df['height'], df['height'], df[y])
+            df[y] = np.where(df[y] < 0, 0, df[y])
+       
         # Create normalised centre point coordinates/bbox width/height of horizontal bounding box with regards to image width and height
-        df['max_bbox_width_norm'] = min((df[x_coords].max(axis=1)-df[x_coords].min(axis=1))\
-            /df['width'],1)
 
-        df['max_bbox_height_norm'] = min((df[y_coords].max(axis=1)-df[y_coords].min(axis=1))\
-            /df['height'], 1)
-
-        df['x_centre_norm'] = min(df['x_centre']/df['width'] , 1)
-
-        df['y_centre_norm'] = min(df['y_centre']/df['height'], 1)
+        df['max_bbox_width_norm'] = (df[x_coords].max(axis=1)-df[x_coords].min(axis=1))\
+            /df['width']
         
+        df['max_bbox_height_norm'] = (df[y_coords].max(axis=1)-df[y_coords].min(axis=1))\
+            /df['height']
+
+        # For x-centre 
+        df['x_centre'] = np.where(df['x_centre'] > df['width'],
+                                  df['width'],
+                                  df['x_centre'])
+
+        df['x_centre'] = np.where(df['x_centre'] < 0,
+                                  0,
+                                  df['x_centre'])
+
+        df['x_centre_norm'] = df['x_centre']/df['width']
+        
+        # For y-centre 
+        df['y_centre'] = np.where(df['y_centre'] > df['height'],
+                          df['height'],
+                          df['y_centre'])
+
+        df['y_centre'] = np.where(df['y_centre'] < 0,
+                                  0,
+                                  df['y_centre'])
+
+
+        df['y_centre_norm'] = df['y_centre']/df['height']
         
         return df
 
@@ -150,7 +179,8 @@ def generate_annotation_per_image(df, img_file_list, annot_output_dir):
     
     for img_id in img_file_list:
         try:
-            temp_df = df[df['annot_for_img_file']==img_id].drop('annot_for_img_file', axis=1)
+            temp_df = df[df['annot_for_img_file']==img_id].drop\
+              ('annot_for_img_file', axis=1)
             txt_save_path = os.path.join(annot_output_dir, img_id)
             txt_format = ['%d', '%f', '%f', '%f', '%f']
             np.savetxt(txt_save_path, temp_df.values, fmt=txt_format, delimiter=" ")
@@ -257,20 +287,23 @@ def main_process_annotation_to_yolo(sys_args):
     contained_df = data[data['is_contained']==1].copy()
 
     # Generate filepath for each Image ID and its corresponding annotation txt file name. This is to facilitate the extraction of image sizing and also the subsequent annotation file that is to be generated for each image that contains the necessary annotation in YOLO format 
-    contained_df['filepath'] = contained_df['Image_ID'].map(lambda x: os.path.join(os.getcwd(), 'Vehicles', 'CO', str(x).zfill(8) + '_co.png'))
+    contained_df['filepath'] = \
+      contained_df['Image_ID'].map(lambda x: os.path.join(os.getcwd(), 'Vehicles', 'CO', str(x).zfill(8) + '_co.png'))
 
     # ensure the suffix matches with the corresponding image file
-    contained_df['annot_for_img_file'] = contained_df['Image_ID'].map(lambda x: str(x).zfill(8) + '.txt')
+    contained_df['annot_for_img_file'] = \
+      contained_df['Image_ID'].map(lambda x: str(x).zfill(8) + '.txt')
 
     # Get image resolution information
-    contained_df['width'], contained_df['height'] = get_img_size(contained_df['filepath'])
+    contained_df['width'], contained_df['height'] = \
+      get_img_size(contained_df['filepath'])
 
     # Get normalised bounding box parameters and apply new class label mapping
     contained_df = normalise_bounding_box_val(contained_df)
     contained_df = apply_class_mapping(contained_df)
 
     # Split data into train/test sets and get a set of file names for each set which annotations are to be generated respectively. A temporary dataframe is used as a dummy to point to dataframe used for training and testing, simplify code processing.
-    train_df, val_df = split_data_train_val_test(contained_df, 
+    train_df, val_df = split_data_train_val_test(contained_df,
                                                 sys_args.validation_ratio)
     train_test_state = ['train', 'val']
 
