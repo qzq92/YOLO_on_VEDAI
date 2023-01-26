@@ -66,7 +66,7 @@ mv Vehicules1024 $veh_directory_to_check
 echo "Complete extraction of tar files"
 
 
-echo "Checking if yolov7 repo exists"
+echo "Checking if yolov7 repo exists..."
 if [ ! -d $yolo_dir ];then
 	echo "Cloning YOLOv7 repo from Github"
 	git clone https://github.com/WongKinYiu/yolov7.git
@@ -98,6 +98,6 @@ mv $veh_directory_to_check/*_co.png $CO
 mv $veh_directory_to_check/*_ir.png $IR
 echo "Completed"
 
-echo "Creating training and testing datasets with YOLO standard annotations"
+echo "Creating training and testing datasets with YOLO standard annotations. 'Train' and 'test' folders would be generated to store them..."
 python process_annotation_to_yolo.py
 echo "Completed"
