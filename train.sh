@@ -48,14 +48,21 @@ fi
 
 echo "Checking existence of $yolo_dir/data/train directory "
 if [ ! -d $yolo_dir/data/train ];then
-	if [! -d $PWD/train ];then
+	if [ ! -d $PWD/train ];then
 		echo "No train folder found, did you forget to run generate_train_val_files.sh script?"
 	else
 		echo "Moving train folder into yolov7's data subdirectory"
 		mv train $yolo_dir/data
 	fi
 else
-	echo "Train folder already exists in yolov7"
+	rm -rf $yolo_dir/data/train
+	echo "Removed existing train folder in yolov7"
+	if [ ! -d $PWD/train ];then
+		echo "No train folder found, did you forget to run generate_train_val_files.sh script?"
+	else
+		echo "Moving train folder into yolov7's data subdirectory"
+		mv train $yolo_dir/data
+	fi
 fi
 
 echo "Checking existence of $yolo_dir/data/val directory"
@@ -67,19 +74,14 @@ if [ ! -d $yolo_dir/data/val ];then
 		mv val $yolo_dir/data
 	fi
 else
-	echo "Val folder already exists in yolov7"
-fi
-
-echo "Checking existence of $yolo_dir/data/val directory"
-if [ ! -d $yolo_dir/data/test ];then
-	if [! -d $PWD/test ];then
-		echo "No test folder found, did you forget to run generate_train_val_files.sh script?"
+	rm -rf $yolo_dir/data/val
+	echo "Removed existing val folder in yolov7"
+	if [! -d $PWD/val ];then
+		echo "No val folder found, did you forget to run generate_train_val_files.sh script?"
 	else
-		echo "Moving test folder into yolov7's data subdirectory"
-		mv test $yolo_dir/data
+		echo "Moving val folder into yolov7's data subdirectory"
+		mv val $yolo_dir/data
 	fi
-else
-	echo "Test folder already exists in yolov7"
 fi
 
 echo "Copying vedai.yaml over to $yolo_dir/data"
