@@ -19,7 +19,7 @@ default_yolo_weight=./yolov7/yolov7.pt
 # Configs for YOLOv7
 workers=1
 device=0 #Do not change if you only have 1 gpu, 0-based indexing
-batch_size=8
+batch_size=4
 epochs=100
 img_res=1024
 output_name=VEDAI
