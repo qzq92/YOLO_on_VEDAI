@@ -7,9 +7,10 @@ Preliminary exploration of data is available in the attached Jupyter notebook *d
 
 ## Procedure to run
 1. Clone this repo and ensure that *annotation1024_cleaned.txt* is included.
-2. Execute *extract_tar.sh* script to download necessary image file
-3. Clone Yolov7 Github as per the link below and place it in the same folder
-4.
+2. Create an anaconda environment, followed by pip installing the *requirements.txt* and *requirements_gpu.txt*(for those with GPU and CUDA enabled)
+3. Execute *download_extract_data.sh* script which would download necessary image files as well as latest Yolov7 Github repo
+4. Execute *generate_train_val_files* script to generate YOLO annotations for each image while splitting the dataset into *train* and *test* folders respectively.
+5.
 
 |Given vehicle type|Class label used for training|
 |---|---|
@@ -23,12 +24,14 @@ Preliminary exploration of data is available in the attached Jupyter notebook *d
 |Others(Bus,motorbike etc)|8|
 |Van|9|
 
-
+## CUDA version 
+11.3
 
 ## YOLOv7 reference
 - [YOLOv7 Github](https://github.com/WongKinYiu/yolov7/blob/main/README.md)
 - [Research paper](https://arxiv.org/abs/2207.02696)
-- [Official YOLO v7 Custom Object Detection Tutorial | Windows & Linux (Youtube)](https://www.youtube.com/watch?v=-QWxJ0j9EY8)
+- [Official YOLO v7 Custom Object Detection Tutorial | Windows & Linux (Youtube)](https://www.youtube.com/watch?v=-QWxJ0j9EY8) Relevant part from 4:40 onwards
+- [YOLOv7 Pretrain weights](https://github.com/WongKinYiu/yolov7/releases) Represented by *.pt* iles Under **Assets** category
 
 ## Dataset download URL
 - [VEDAI](https://downloads.greyc.fr/vedai/)  #Under Download and Copyrights section of the webpage
